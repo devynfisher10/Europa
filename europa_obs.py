@@ -75,12 +75,13 @@ class EuropaObs(ObsBuilder):
             player_car.position / self.POS_STD,
             player_car.forward(),
             player_car.up(),
-            player_car.pitch(),
-            player_car.yaw(),
-            player_car.roll(),
+ 
             player_car.linear_velocity / self.POS_STD,
             player_car.angular_velocity / self.ANG_STD,
-            [player.boost_amount,
+            [player_car.pitch(), ##### added pitch yaw roll to here instead scalars instead of arrays) to make concatenate work. need array of arrays, not some floats mixed in.
+             player_car.yaw(), ##### need to readjust all  the state setting numbers based on this move. moved pitch, yaw, roll 6 later. so 6 later for first car then 12 later for second car. 
+             player_car.roll(),##### other vars will be shifted by this... although might balance out. go through all and check then should work.
+             player.boost_amount,
              int(player.on_ground),
              int(player.has_flip),
              int(player.is_demoed),

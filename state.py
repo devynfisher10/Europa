@@ -216,14 +216,14 @@ class ConfigurableState(StateSetter):
         car_z_pos = state_pick[59]*POS_STD*np.random.normal(self.mu, self.sigma)
         chosen_car.set_pos(car_x_pos, car_y_pos, car_z_pos)
 
-        car_x_vel = state_pick[69]*POS_STD*np.random.normal(self.mu, self.sigma)*team_inverter
-        car_y_vel = state_pick[70]*POS_STD*np.random.normal(self.mu, self.sigma)*team_inverter
-        car_z_vel = state_pick[71]*POS_STD*np.random.normal(self.mu, self.sigma)
+        car_x_vel = state_pick[66]*POS_STD*np.random.normal(self.mu, self.sigma)*team_inverter
+        car_y_vel = state_pick[67]*POS_STD*np.random.normal(self.mu, self.sigma)*team_inverter
+        car_z_vel = state_pick[68]*POS_STD*np.random.normal(self.mu, self.sigma)
         chosen_car.set_lin_vel(car_x_vel, car_y_vel, car_z_vel)
 
-        car_x_ang = state_pick[72]*ANG_STD*np.random.normal(self.mu, self.sigma)*team_inverter
-        car_y_ang = state_pick[73]*ANG_STD*np.random.normal(self.mu, self.sigma)*team_inverter
-        car_z_ang = state_pick[74]*ANG_STD*np.random.normal(self.mu, self.sigma)
+        car_x_ang = state_pick[69]*ANG_STD*np.random.normal(self.mu, self.sigma)*team_inverter
+        car_y_ang = state_pick[70]*ANG_STD*np.random.normal(self.mu, self.sigma)*team_inverter
+        car_z_ang = state_pick[71]*ANG_STD*np.random.normal(self.mu, self.sigma)
         chosen_car.set_ang_vel(car_x_ang, car_y_ang, car_z_ang)
 
         chosen_car.boost = state_pick[75]
@@ -238,22 +238,22 @@ class ConfigurableState(StateSetter):
         car_z_pos = state_pick[88]*POS_STD*np.random.normal(self.mu, self.sigma)
         not_chosen_car.set_pos(car_x_pos, car_y_pos, car_z_pos)
 
-        car_x_vel = state_pick[98]*POS_STD*np.random.normal(self.mu, self.sigma)*team_inverter*(-1)*team_inverter
-        car_y_vel = state_pick[99]*POS_STD*np.random.normal(self.mu, self.sigma)*team_inverter*(-1)*team_inverter
-        car_z_vel = state_pick[100]*POS_STD*np.random.normal(self.mu, self.sigma)
+        car_x_vel = state_pick[95]*POS_STD*np.random.normal(self.mu, self.sigma)*team_inverter*(-1)*team_inverter
+        car_y_vel = state_pick[96]*POS_STD*np.random.normal(self.mu, self.sigma)*team_inverter*(-1)*team_inverter
+        car_z_vel = state_pick[97]*POS_STD*np.random.normal(self.mu, self.sigma)
         not_chosen_car.set_lin_vel(car_x_vel, car_y_vel, car_z_vel)
 
-        car_x_ang = state_pick[101]*ANG_STD*np.random.normal(self.mu, self.sigma)*team_inverter*(-1)*team_inverter
-        car_y_ang = state_pick[102]*ANG_STD*np.random.normal(self.mu, self.sigma)*team_inverter*(-1)*team_inverter
-        car_z_ang = state_pick[103]*ANG_STD*np.random.normal(self.mu, self.sigma)
+        car_x_ang = state_pick[98]*ANG_STD*np.random.normal(self.mu, self.sigma)*team_inverter*(-1)*team_inverter
+        car_y_ang = state_pick[99]*ANG_STD*np.random.normal(self.mu, self.sigma)*team_inverter*(-1)*team_inverter
+        car_z_ang = state_pick[100]*ANG_STD*np.random.normal(self.mu, self.sigma)
         not_chosen_car.set_ang_vel(car_x_ang, car_y_ang, car_z_ang)
 
         not_chosen_car.boost = state_pick[104]
 
 
         #  invert yaw, pitch roll is (+,-,+)
-        chosen_car.set_rot(state_pick[66]*team_inverter, state_pick[67]*team_inverter, state_pick[68]*team_inverter)
-        not_chosen_car.set_rot(state_pick[95], state_pick[96]*(-1)*team_inverter, state_pick[97])
+        chosen_car.set_rot(state_pick[72]*team_inverter, state_pick[73]*team_inverter, state_pick[74]*team_inverter)
+        not_chosen_car.set_rot(state_pick[97], state_pick[98]*(-1)*team_inverter, state_pick[99])
 
         
 
@@ -268,10 +268,10 @@ class ConfigurableState(StateSetter):
 class EuropaStateSetter(StateSetter):
     def __init__(
             self, *,
-            default_prob=6/10,
+            default_prob=6/10, # for testing make 2
             wall_prob=.5/10,
             kickofflike_prob=0/10,
-            random_prob=1.5/10,
+            random_prob=1.5/10, # for testing make 5.5
             aerial_prob=2/10
 
             #added for testing

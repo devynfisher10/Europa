@@ -10,8 +10,115 @@ from rlgym.utils.common_values import BALL_MAX_SPEED, CAR_MAX_SPEED, BLUE_GOAL_B
 from rlgym_tools.sb3_utils.sb3_log_reward import SB3CombinedLogReward
 
 
+
+
+class VelocityBallToGoalReward(RewardFunction):
+    def __init__(self):
+        super().__init__()
+
+    def reset(self, initial_state: GameState):
+        pass
+
+    def get_reward(self, player: PlayerData, state: GameState, previous_action: np.ndarray) -> float:
+        if player.team_num == BLUE_TEAM 
+            objective = np.array(ORANGE_GOAL_BACK)
+        else:
+            objective = np.array(BLUE_GOAL_BACK)
+
+        vel = state.ball.linear_velocity
+        pos_diff = objective - state.ball.position
+        
+        # Regular component velocity
+        norm_pos_diff = pos_diff / np.linalg.norm(pos_diff)
+        norm_vel = vel / BALL_MAX_SPEED
+
+        multiplier_ball_height = 1
+        if ball_position[2] > BALL_RADIUS*2:
+            multiplier_ball_height = 1.25
+
+        return multiplier_ball_height*float(np.dot(norm_pos_diff, norm_vel))
+
+
+class KickoffReward(RewardFunction):
+    def __init__(self):
+        super().__init__()
+        self.kickoff_state=False
+        self.used_first_flip_kickoff=0
+        self.land_kickoff=0
+        self.used_second_flip_kickoff=0
+        self.post_kickoff_counter=0
+        self.kickoff_first_touch=0
+
+    def reset(self, initial_state: GameState):
+        self.kickoff_state=False
+        self.used_first_flip_kickoff=0
+        self.land_kickoff=0
+        self.used_second_flip_kickoff=
+        self.post_kickoff_counter=0
+        self.kickoff_first_touch=0
+
+    def get_reward(
+        self, player: PlayerData, state: GameState, previous_action: ndarray
+    ) -> float:
+
+        # get state data
+        car_position = player.car_data.position
+        car_vel = player.car_data.linear_velocity
+        ball_position = state.ball.position
+        ball_vel = state.ball.linear_velocity
+
+        reward_kickoff = 0
+        reward_post_kickoff = 0
+        if self.kickoff_state or (ball_position[0] == 0 and ball_position[1] == 0):
+            self.kickoff_state = True
+            vel = car_vel
+            pos_diff = ball_position - car_position
+            norm_pos_diff = pos_diff / np.linalg.norm(pos_diff)
+            norm_vel = vel / CAR_MAX_SPEED
+            reward_vel_to_ball = float(np.dot(norm_pos_diff, norm_vel))
+            # while approaching ball, kickoff reward is just vel to ball
+            reward_kickoff = reward_vel_to_ball
+
+            if (self.used_first_flip_kickoff == 0) and (not player.on_ground):
+                self.used_first_flip_kickoff = 1
+            elif (self.used_first_flip_kickoff == 1) and (player.on_ground):
+                self.land_kickoff = 1
+            elif (self.used_first_flip_kickoff == 1) and (self.land_kickoff == 1) and (not player.on_ground) and (player.ball_touched):
+                self.used_second_flip_kickoff = 1
+
+            # contact has been made on kickoff
+            if not (ball_position[0] == 0 and ball_position[1] == 0):
+                if player.ball_touched:
+                    self.kickoff_first_touch = 1
+                self.last_kickoff_vel = self.prev_player_vel
+                self.kickoff_state = False
+                self.post_kickoff_counter=1
+            # if still in kickoff state, just reward kickoff reward and end call to rewards
+            else:
+                self.returns += [self.weight_kickoff * reward_kickoff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                return float(self.weight_kickoff * reward_kickoff)
+        # if after kickoff, keep count and give final reward on 8th step
+        elif self.post_kickoff_counter > 0:
+            self.post_kickoff_counter = self.post_kickoff_counter + 1
+            # evaluate kickoff results at 8 steps after first contact (about half a second)
+            if self.post_kickoff_counter == 8:
+                post_kickoff_ball_velocity = reward_velocity_ball_to_goal 
+                reward_post_kickoff = .5*self.used_first_flip_kickoff + .5*self.used_second_flip_kickoff
+                + post_kickoff_ball_velocity + np.linalg.norm(self.last_kickoff_vel) / CAR_MAX_SPEED
+                + self.kickoff_first_touch
+                #reset variables
+                self.post_kickoff_counter = 0
+                self.used_first_flip_kickoff=0
+                self.used_second_flip_kickoff = 0
+        # total kickoff reward is either the vel to ball during kickoff, or the lump sum reward 8 steps after kickoff
+        # reward kickoff ranges [-1, 1] during kickoff and up to 4 at post kickoff
+        reward_kickoff = reward_kickoff + reward_post_kickoff
+
+        return reward_kickoff
+
+
 class TouchVelChange(RewardFunction):
-    """Reward for changing velocity on ball, from KaiyoBot"""
+    """Reward for changing velocity on ball"""
     def __init__(self):
         self.last_vel = np.zeros(3)
 
@@ -30,29 +137,6 @@ class TouchVelChange(RewardFunction):
 
         return reward
 
-
-
-class BadTurtle(RewardFunction):
-    """Negative reward for being on the ground on a part of the car that is not the wheels"""
-    def __init__(self):
-        pass
-
-    def reset(self, initial_state: GameState):
-        pass
-    
-    def get_reward(
-        self, player: PlayerData, state: GameState, previous_action: np.ndarray
-    ) -> float:
-
-        car_height = player.car_data.position[2] 
-        # reward is negative, because turtling is not generally useful
-        # car height between on wheels resting value and slightly above turtling resting value and z portion of vector normal to car indicates car is upside down
-        if (car_height> 20.0) and (car_height<=50.0) and (not player.on_ground) and (player.car_data.up()[2] < 0):
-            reward = -1.0
-        else:
-            reward=0
-
-        return reward
 
 
 class JumpTouchReward(RewardFunction):
@@ -74,15 +158,29 @@ class JumpTouchReward(RewardFunction):
         return 0
 
 
+class ExploreAir(RewardFunction):
+    """Rewards exploring certain height once per episode away from walls"""
+    def __init__(self): 
+        self.explores_air = 0
+
+    def reset(self, initial_state: GameState):
+        self.explores_air = 0
+    
+    def get_reward(
+        self, player: PlayerData, state: GameState, previous_action: np.ndarray
+    ) -> float:
+        if (self.explores_air==0) and (not player.on_ground and abs(car_position[1]) <= 4000 and abs(car_position[0]) <= 3000) and car_position[2] > 642.775:
+            self.explores_air = 1
+            return 1
+
+
 class AerialReward(RewardFunction):
-    """Rewards every step car is in air and away from walls. Emergency reward to encourage getting unstuck from ground. Will remove / severely tone down once is getting jump touches."""
+    """Rewards every step car is in air and away from walls."""
     def __init__(self, min_height=25): # from 25
         self.min_height = min_height
         self.max_height = 2044-92.75
-        #self.prev_has_flip = True
 
     def reset(self, initial_state: GameState):
-        #self.prev_has_flip = True
         pass
     
     def get_reward(
@@ -90,56 +188,30 @@ class AerialReward(RewardFunction):
     ) -> float:
         # reward if car off ground above min height and away from any walls
         if not player.on_ground and abs(player.car_data.position[1]) <= 4000 and abs(player.car_data.position[0]) <= 3000: # and self.prev_has_flip and not player.has_flip:
-            #self.prev_has_flip = player.has_flip
-            #if player.ball_touched:
-            #    return .2
-            #else:
-                
-            return .01
-
-        #self.prev_has_flip = player.has_flip
+            multiplier_z_vel = 1 + ((max(car_vel[2], 0) / CAR_MAX_SPEED))**.2
+            # ranges from [1] * [1, 2]
+            return 1 * multiplier_z_vel
         return 0
 
 
-class ZVelocity(RewardFunction):
-    """Rewards car for having positive z velocity while ball above them and close to them"""
-    def __init__(self, min_height_diff=BALL_RADIUS): 
-        self.min_height_diff=min_height_diff
+class BoostInAir(RewardFunction):
+    """Rewards boosting in air"""
+    def __init__(self): #
+        self.last_registered_boost = {}
 
     def reset(self, initial_state: GameState):
-        pass
-    
+        self.last_registered_boost = {}
+        for player in initial_state.players:
+            self.last_registered_boost[player.car_id] = player.boost_amount
     def get_reward(
         self, player: PlayerData, state: GameState, previous_action: np.ndarray
     ) -> float:
-        # reward if car z pos below ball position accounting for ball radius, when x and y pos diff not too big
-        if  not player.on_ground and (player.car_data.position[2] < state.ball.position[2] - self.min_height_diff) and (abs(player.car_data.position[0] - state.ball.position[0]) < 500) and (abs(player.car_data.position[1] - state.ball.position[1]) < 500): 
-            return player.car_data.linear_velocity[2] / CAR_MAX_SPEED
-        return 0
-
-
-class FlipToBallReward(RewardFunction):
-    """Rewards car flipping closer to ball"""
-    def __init__(self, min_height=25): # from 25
-        self.prev_has_flip = True
-        self.prev_dist_to_ball = 0
-
-    def reset(self, initial_state: GameState):
-        self.prev_has_flip = True
-        self.prev_dist_to_ball = 0
-
-    
-    def get_reward(
-        self, player: PlayerData, state: GameState, previous_action: np.ndarray
-    ) -> float:
-        dist_to_ball = np.linalg.norm(state.ball.position - player.car_data.position)
-        reward = 0
-        if abs(player.car_data.position[1]) <= 4000 and abs(player.car_data.position[0]) <= 3000 and self.prev_has_flip and not player.has_flip and dist_to_ball < self.prev_dist_to_ball:
-            reward = 1
-
-        self.prev_has_flip = player.has_flip
-        self.prev_dist_to_ball = dist_to_ball
-        return reward
+        boost_diff = player.boost_amount - self.last_registered_boost[player.car_id]
+        reward_boost_in_air = 0
+        if (car_position[2] > 2 * BALL_RADIUS) and (not player.on_ground):
+            # range is [0, 1], but really smaller bc can't use all 100 boost in one step. limited to how much boost can be consumed in a step
+            reward_boost_in_air = -1*float(boost_diff)
+        self.last_registered_boost[player.car_id] = player.boost_amount
 
 
 class DoubleTapReward(RewardFunction):
@@ -151,7 +223,7 @@ class DoubleTapReward(RewardFunction):
         self.second_air_touch = False
         self.min_height = BALL_RADIUS + 5
         self.min_backboard_height = 500 # top of goal is 642.775, changed from 250
-        self.min_car_dist_from_backboard = BALL_RADIUS*6 # from 2 at 550 mil
+        self.min_car_dist_from_backboard = BALL_RADIUS*6 
         self.num_steps = 0
         self.prev_ball_vel = np.zeros(3)
 
@@ -178,7 +250,7 @@ class DoubleTapReward(RewardFunction):
         # need to account for order, only reward for backboard -> air touch not other way around otherwise that just rewards hitting ball into backboard
 
         # if ball hits backboard, and previous ball velocity was mostly towards the backboard, set off_backboard value. Requires height to be in air
-        if (ball_position[2] >= self.min_backboard_height) and (abs(self.prev_ball_vel[1]) > abs(self.prev_ball_vel[0]) + (abs(self.prev_ball_vel[2]))) and (ball_position[1] >= BACK_WALL_Y - BALL_RADIUS - 10):
+        if (ball_position[2] >= self.min_backboard_height) and (abs(self.prev_ball_vel[1]) > max(abs(self.prev_ball_vel[0]) + (abs(self.prev_ball_vel[2])), 20)) and (ball_position[1] >= BACK_WALL_Y - BALL_RADIUS - 10):
             self.off_backboard=True
 
         # if make air touch, set first_air_touch value. Only set this value if has not yet touched the backboard 
@@ -211,14 +283,13 @@ class DoubleTapReward(RewardFunction):
                 norm_vel = vel / np.linalg.norm(vel)
             else:
                 norm_vel = vel
-            # only care about going towards back of net in x, y plane. z coordinate can vary.
-            dot = float(norm_pos_diff[0]*norm_vel[0] + norm_pos_diff[1]*norm_vel[1])
+            dot = float(np.dot(norm_pos_diff,norm_vel))
             # check to see if velocity of ball towards goal is positive after final touch, only give reward if true
-            if dot > .5:
+            if dot > .75:
                 reward=1
-                # 5x reward if get full double tap instead of just backboard read
+                # 3x reward if get full double tap instead of just backboard read
                 if self.first_air_touch:
-                    reward = 5
+                    reward = 3
             # increment steps to make sure only rewards for initial hit + follow up
             self.num_steps += 1
 
@@ -282,13 +353,13 @@ class AirDribbleReward(RewardFunction):
         if player.ball_touched and player.on_ground and ball_position[2] >= self.min_wall_touch_height and abs(ball_position[1]) <= 3500 and self.num_steps < 15: # backboard is 5120
             self.wall_touch = True
             self.num_steps = self.num_steps + 1
-            reward = .1*((ball_position[2] - self.min_wall_touch_height)/self.max_height)**.5 # diminshing returns, increasing rewards for higher touches on wall, from .1 at 1.25
+            reward = max(player.boost_amount, .33)*.2*((ball_position[2] - self.min_wall_touch_height)/self.max_height)**.5 # diminshing returns, increasing rewards for higher touches on wall, from .1 at 1.25
 
         # add reward if hits ball off sidewall up into air towards goal. only true if already wall touch
         if not self.off_sidewall and self.wall_touch and ball_vel[2] > 0 and ball_vel[1] > 0 and abs(ball_position[0]) < 4096 - BALL_RADIUS*2:
             self.num_steps = 0
             self.off_sidewall = True
-            reward = .25
+            reward = max(player.boost_amount, .33)*.25
 
         # add reward if car off wall towards ball
         if self.wall_touch and self.off_sidewall and not player.on_ground:
@@ -296,22 +367,24 @@ class AirDribbleReward(RewardFunction):
             vel_diff = state.ball.linear_velocity - player.car_data.linear_velocity
             norm_pos_diff = np.linalg.norm(pos_diff)
             norm_vel_diff = np.linalg.norm(vel_diff)
-
+            normed_pos_diff = pos_diff / norm_pos_diff
+            normed_vel_diff = vel_diff / norm_vel_diff
+            vel_to_ball = float(np.dot(normed_pos_diff, normed_vel_diff))
             # reward as long as stays close to ball and with a similar velocity as ball
-            if norm_pos_diff < self.min_pos_diff and norm_vel_diff < self.min_vel_diff and self.num_steps < 30:
+            if norm_pos_diff < self.min_pos_diff and norm_vel_diff < self.min_vel_diff and vel_to_ball > .2 and self.num_steps < 30:
                 self.num_steps = self.num_steps + 1
                 self.towards_ball = True
-                reward = .25
+                reward = .15
 
         # add reward if hits ball in air after pop
         if not self.first_air_touch and self.wall_touch and self.off_sidewall and self.towards_ball and player.ball_touched and not player.on_ground and ball_position[2] >=  self.min_air_dribble_height:
             self.first_air_touch = True
-            reward = reward + 1.5
+            reward = 1.5
 
         # add reward for each following air touch
         if self.wall_touch and self.off_sidewall and self.towards_ball and self.first_air_touch and  player.ball_touched and not player.on_ground and ball_position[2] >=  self.min_air_dribble_height:
             self.second_air_touch = True
-            reward = max(2, reward + 1.5)
+            reward = 2
 
 
         # add extra reward if ball going towards goal
