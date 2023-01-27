@@ -20,7 +20,7 @@ class VelocityBallToGoalReward(RewardFunction):
         pass
 
     def get_reward(self, player: PlayerData, state: GameState, previous_action: np.ndarray) -> float:
-        if player.team_num == BLUE_TEAM 
+        if player.team_num == BLUE_TEAM :
             objective = np.array(ORANGE_GOAL_BACK)
         else:
             objective = np.array(BLUE_GOAL_BACK)
@@ -33,7 +33,7 @@ class VelocityBallToGoalReward(RewardFunction):
         norm_vel = vel / BALL_MAX_SPEED
 
         multiplier_ball_height = 1
-        if ball_position[2] > BALL_RADIUS*2:
+        if state.ball.position[2] > BALL_RADIUS*2:
             multiplier_ball_height = 1.25
 
         return multiplier_ball_height*float(np.dot(norm_pos_diff, norm_vel))
@@ -53,12 +53,12 @@ class KickoffReward(RewardFunction):
         self.kickoff_state=False
         self.used_first_flip_kickoff=0
         self.land_kickoff=0
-        self.used_second_flip_kickoff=
+        self.used_second_flip_kickoff=0
         self.post_kickoff_counter=0
         self.kickoff_first_touch=0
 
     def get_reward(
-        self, player: PlayerData, state: GameState, previous_action: ndarray
+        self, player: PlayerData, state: GameState, previous_action: np.ndarray
     ) -> float:
 
         # get state data
@@ -95,8 +95,7 @@ class KickoffReward(RewardFunction):
                 self.post_kickoff_counter=1
             # if still in kickoff state, just reward kickoff reward and end call to rewards
             else:
-                self.returns += [self.weight_kickoff * reward_kickoff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                return float(self.weight_kickoff * reward_kickoff)
+                return float(reward_kickoff)
         # if after kickoff, keep count and give final reward on 8th step
         elif self.post_kickoff_counter > 0:
             self.post_kickoff_counter = self.post_kickoff_counter + 1
@@ -135,7 +134,10 @@ class TouchVelChange(RewardFunction):
 
         self.last_vel = state.ball.linear_velocity
 
-        return reward
+
+        multiplier_touch_height = 1.0 + (state.ball.position[2] / 4000.0)**.4
+
+        return reward*multiplier_touch_height
 
 
 
@@ -169,9 +171,11 @@ class ExploreAir(RewardFunction):
     def get_reward(
         self, player: PlayerData, state: GameState, previous_action: np.ndarray
     ) -> float:
+        car_position = player.car_data.position
         if (self.explores_air==0) and (not player.on_ground and abs(car_position[1]) <= 4000 and abs(car_position[0]) <= 3000) and car_position[2] > 642.775:
             self.explores_air = 1
             return 1
+        return 0
 
 
 class AerialReward(RewardFunction):
@@ -187,6 +191,7 @@ class AerialReward(RewardFunction):
         self, player: PlayerData, state: GameState, previous_action: np.ndarray
     ) -> float:
         # reward if car off ground above min height and away from any walls
+        car_vel = player.car_data.linear_velocity
         if not player.on_ground and abs(player.car_data.position[1]) <= 4000 and abs(player.car_data.position[0]) <= 3000: # and self.prev_has_flip and not player.has_flip:
             multiplier_z_vel = 1 + ((max(car_vel[2], 0) / CAR_MAX_SPEED))**.2
             # ranges from [1] * [1, 2]
@@ -206,12 +211,14 @@ class BoostInAir(RewardFunction):
     def get_reward(
         self, player: PlayerData, state: GameState, previous_action: np.ndarray
     ) -> float:
+        car_position = player.car_data.position
         boost_diff = player.boost_amount - self.last_registered_boost[player.car_id]
         reward_boost_in_air = 0
         if (car_position[2] > 2 * BALL_RADIUS) and (not player.on_ground):
             # range is [0, 1], but really smaller bc can't use all 100 boost in one step. limited to how much boost can be consumed in a step
             reward_boost_in_air = -1*float(boost_diff)
         self.last_registered_boost[player.car_id] = player.boost_amount
+        return reward_boost_in_air
 
 
 class DoubleTapReward(RewardFunction):
