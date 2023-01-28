@@ -14,8 +14,8 @@ from rlgym_tools.sb3_utils.sb3_log_reward import SB3CombinedLogRewardCallback
 
 from rlgym_tools.sb3_utils.sb3_log_reward import SB3CombinedLogReward
 from rlgym.utils.reward_functions.common_rewards.misc_rewards import EventReward, VelocityReward
-from rewards import VelocityBallToGoalReward, KickoffReward, TouchVelChange,JumpTouchReward,DoubleTapReward, 
-AirDribbleReward, AerialReward, GoalSpeedAndPlacementReward, BoostInAir, ExploreAir
+from rewards import VelocityBallToGoalReward, KickoffReward, TouchVelChange,JumpTouchReward,DoubleTapReward 
+from rewards import AirDribbleReward, AerialReward, GoalSpeedAndPlacementReward, BoostInAir, ExploreAir
 
 
 
@@ -27,9 +27,9 @@ from terminal import EuropaTerminalCondition
 from action_parser import LookupAction
 
 if __name__ == '__main__':  # Required for multiprocessing
-    testing = True # if testing new changes, set instances to 1 and gamespeed to 1
+    testing = False # if testing new changes, set instances to 1 and gamespeed to 1
     model_name = 'EuropaRun2'
-    loading_model=False #check that loading model instead of starting from scratch
+    loading_model=True #check that loading model instead of starting from scratch
 
     if testing:
         num_instances=1
@@ -60,7 +60,7 @@ if __name__ == '__main__':  # Required for multiprocessing
 
         # defining initial custom reward weights, will update over time for curriculum learning and comment iterations
         event_weight = 1 
-        touch_vel_weight = 15 
+        touch_vel_weight = 14
         vel_ball_weight = 3 
         vel_weight = .002 
         jump_touch_weight = 25 

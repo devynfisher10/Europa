@@ -48,6 +48,8 @@ class KickoffReward(RewardFunction):
         self.used_second_flip_kickoff=0
         self.post_kickoff_counter=0
         self.kickoff_first_touch=0
+        self.prev_player_vel = np.zeros(3)
+        self.last_kickoff_vel = np.zeros(3)
 
     def reset(self, initial_state: GameState):
         self.kickoff_state=False
@@ -56,6 +58,9 @@ class KickoffReward(RewardFunction):
         self.used_second_flip_kickoff=0
         self.post_kickoff_counter=0
         self.kickoff_first_touch=0
+        self.prev_player_vel = np.zeros(3)
+        self.last_kickoff_vel = np.zeros(3)
+
 
     def get_reward(
         self, player: PlayerData, state: GameState, previous_action: np.ndarray
@@ -66,6 +71,19 @@ class KickoffReward(RewardFunction):
         car_vel = player.car_data.linear_velocity
         ball_position = state.ball.position
         ball_vel = state.ball.linear_velocity
+
+
+        ##### velocity ball to goal reward
+        reward_velocity_ball_to_goal = 0
+        if player.team_num == BLUE_TEAM:
+            objective = np.array(ORANGE_GOAL_BACK)
+        else:
+            objective = np.array(BLUE_GOAL_BACK)
+        pos_diff = objective - ball_position
+        norm_pos_diff = pos_diff / np.linalg.norm(pos_diff)
+        norm_vel = ball_vel / BALL_MAX_SPEED
+        reward_velocity_ball_to_goal = float(np.dot(norm_pos_diff, norm_vel))
+
 
         reward_kickoff = 0
         reward_post_kickoff = 0
