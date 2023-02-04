@@ -43,11 +43,10 @@ if __name__ == '__main__':  # Required for multiprocessing
     # initial parameters, will update over the course of learning to increase batch size and comment iterations
     fps = 120 / frame_skip
     gamma = np.exp(np.log(0.5) / (fps * half_life_seconds))  
-    # start steps at 500_000 instead of 1 mil for early learning speed, move to 1 mil later
-    target_steps = 100_000
+    target_steps = 500_000 # from 100,000 at 1B
     agents_per_match = 2
     steps = target_steps // (num_instances * agents_per_match) #making sure the experience counts line up properly
-    batch_size = 20_000
+    batch_size = 100_000 # from 20,000 at 1B
     model_to_load = "exit_save.zip" #exit_save.zip rl_model_281069544_steps
     print(f"fps={fps}, gamma={gamma})")
 
@@ -60,13 +59,13 @@ if __name__ == '__main__':  # Required for multiprocessing
 
         # defining initial custom reward weights, will update over time for curriculum learning and comment iterations
         event_weight = 1 
-        touch_vel_weight = 14
-        vel_ball_weight = 3 
+        touch_vel_weight = 11 # from 14 at 1B
+        vel_ball_weight = 3 # 
         vel_weight = .002 
         jump_touch_weight = 25 
         double_tap_weight = 1  
         air_dribble_weight = 2.5 
-        aerial_weight = .0005  
+        aerial_weight = .00075 # from .0005 at 1B  
         goal_speed_weight = 10 
         kickoff_weight = .3 
         boost_in_air_weight = .3
