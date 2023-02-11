@@ -120,7 +120,7 @@ class KickoffReward(RewardFunction):
             # evaluate kickoff results at 8 steps after first contact (about half a second)
             if self.post_kickoff_counter == 8:
                 post_kickoff_ball_velocity = reward_velocity_ball_to_goal 
-                reward_post_kickoff = .5*self.used_first_flip_kickoff + .5*self.used_second_flip_kickoff
+                reward_post_kickoff = 1.0*self.used_first_flip_kickoff + .5*self.used_second_flip_kickoff
                 + post_kickoff_ball_velocity + np.linalg.norm(self.last_kickoff_vel) / CAR_MAX_SPEED
                 + self.kickoff_first_touch
                 #reset variables
@@ -378,7 +378,7 @@ class AirDribbleReward(RewardFunction):
         if player.ball_touched and player.on_ground and ball_position[2] >= self.min_wall_touch_height and abs(ball_position[1]) <= 3500 and self.num_steps < 15: # backboard is 5120
             self.wall_touch = True
             self.num_steps = self.num_steps + 1
-            reward = max(player.boost_amount, .33)*.2*((ball_position[2] - self.min_wall_touch_height)/self.max_height)**.5 # diminshing returns, increasing rewards for higher touches on wall, from .1 at 1.25
+            reward = max(player.boost_amount, .33)*.35*((ball_position[2] - self.min_wall_touch_height)/self.max_height)**.5 # diminshing returns, increasing rewards for higher touches on wall, from .1 at 1.25
 
         # add reward if hits ball off sidewall up into air towards goal. only true if already wall touch
         if not self.off_sidewall and self.wall_touch and ball_vel[2] > 0 and ball_vel[1] > 0 and abs(ball_position[0]) < 4096 - BALL_RADIUS*2:

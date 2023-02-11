@@ -43,7 +43,7 @@ if __name__ == '__main__':  # Required for multiprocessing
     # initial parameters, will update over the course of learning to increase batch size and comment iterations
     fps = 120 / frame_skip
     gamma = np.exp(np.log(0.5) / (fps * half_life_seconds))  
-    target_steps = 500_000 # from 100,000 at 1B
+    target_steps = 1_000_000 # from 500,000 at 2B from 100,000 at 1B
     agents_per_match = 2
     steps = target_steps // (num_instances * agents_per_match) #making sure the experience counts line up properly
     batch_size = 100_000 # from 20,000 at 1B
@@ -65,7 +65,7 @@ if __name__ == '__main__':  # Required for multiprocessing
         jump_touch_weight = 25 
         double_tap_weight = 1  
         air_dribble_weight = 2.5 
-        aerial_weight = .00075 # from .0005 at 1B  
+        aerial_weight = .0009 # from .00075 at 1.7B, .0005 at 1B 
         goal_speed_weight = 10 
         kickoff_weight = .3 
         boost_in_air_weight = .3
@@ -81,7 +81,7 @@ if __name__ == '__main__':  # Required for multiprocessing
                  TouchVelChange(),
                  VelocityBallToGoalReward(),
                  VelocityReward(),
-                 JumpTouchReward(min_height=92.75*2), # from 92.75 at 2B from 0 at 1.25B
+                 JumpTouchReward(min_height=92.75*2), 
                  DoubleTapReward(),
                  AirDribbleReward(),
                  AerialReward(),
